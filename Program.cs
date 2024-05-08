@@ -6,10 +6,10 @@ namespace LineEndings
 {
     class Program
     {
-        private const byte CR = 0x0D;
-        private const byte LF = 0x0A;
+        private const byte Cr = 0x0D;
+        private const byte Lf = 0x0A;
         // ReSharper disable once InconsistentNaming
-        private static readonly byte[] DOSLineEnding = { CR, LF };
+        private static readonly byte[] DOSLineEnding = { Cr, Lf };
 
         private static readonly string[] KnownBinaryExtensions =
         {
@@ -41,9 +41,9 @@ namespace LineEndings
             }
 
             Console.WriteLine("Scanning: '" + args[1] + "' and subdirectories");
-            string[] allfiles = Directory.GetFiles(args[1], "*.*", SearchOption.AllDirectories);
+            string[] allFiles = Directory.GetFiles(args[1], "*.*", SearchOption.AllDirectories);
 
-            foreach (string fileName in allfiles)
+            foreach (string fileName in allFiles)
             {
                 try
                 {
@@ -75,68 +75,48 @@ namespace LineEndings
         }
 
         /// <summary>
-        /// Convert DOS style line endings to UNIX line endings
+        /// Converts Windows-style line endings to Unix-style line endings in a file.
         /// </summary>
-        /// <param name="fileName">file to convert</param>
+        /// <param name="fileName">The path to the file to convert.</param>
         private static void Dos2Unix(string fileName)
         {
 
-            byte[] data = File.ReadAllBytes(fileName);
-            using (FileStream fileStream = File.OpenWrite(fileName))
+            // Check if the file exists
+            if (!File.Exists(fileName))
             {
-                BinaryWriter binaryWriter = new BinaryWriter(fileStream);
-                int position = 0;
-                int index;
-                do
-                {
-                    index = Array.IndexOf(data, CR, position);
-                    if (index < 0 || data[index + 1] != LF)
-                        break;
-                    // Write before the CR
-                    binaryWriter.Write(data, position, index - position);
-                    // from LF
-                    position = index + 1;
-                } while (index > 0);
-
-                binaryWriter.Write(data, position, data.Length - position);
-                fileStream.SetLength(fileStream.Position);
+                throw new FileNotFoundException("The specified file does not exist.", fileName);
             }
+
+            // Read the content of the file
+            string content = File.ReadAllText(fileName);
+
+            // Replace Windows line endings (\r\n) with Unix line endings (\n)
+            string convertedContent = content.Replace("\r\n", "\n");
+
+            // Write the converted content back to the file
+            File.WriteAllText(fileName, convertedContent);
         }
 
         /// <summary>
-        /// Convert UNIX style line endings to DOS line endings
+        /// Converts Unix-style line endings to Windows-style line endings in a file.
         /// </summary>
-        /// <param name="fileName">file to convert</param>
+        /// <param name="fileName">The path to the file to convert.</param>
         private static void Unix2Dos(string fileName)
         {
-            byte[] data = File.ReadAllBytes(fileName);
-            using (FileStream fileStream = File.OpenWrite(fileName))
+            // Check if the file exists
+            if (!File.Exists(fileName))
             {
-                BinaryWriter binaryWriter = new BinaryWriter(fileStream);
-                int position = 0;
-                int index;
-                do
-                {
-                    index = Array.IndexOf(data, LF, position);
-                    if (index < 0)
-                        continue;
-
-                    if (index > 0 && data[index - 1] == CR)
-                    {
-                        // already dos ending
-                        binaryWriter.Write(data, position, index - position + 1);
-                    }
-                    else
-                    {
-                        binaryWriter.Write(data, position, index - position);
-                        binaryWriter.Write(DOSLineEnding);
-                    }
-                    position = index + 1;
-                } while (index > 0);
-
-                binaryWriter.Write(data, position, data.Length - position);
-                fileStream.SetLength(fileStream.Position);
+                throw new FileNotFoundException("The specified file does not exist.", fileName);
             }
+
+            // Read the content of the file
+            string content = File.ReadAllText(fileName);
+
+            // Replace Unix line endings (\n) with Windows line endings (\r\n)
+            string convertedContent = content.Replace("\r\n", "\n").Replace("\n", "\r\n");
+
+            // Write the converted content back to the file
+            File.WriteAllText(fileName, convertedContent);
         }
     }
 }
