@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace LineEndings
 {
@@ -8,13 +9,11 @@ namespace LineEndings
     {
         private const byte Cr = 0x0D;
         private const byte Lf = 0x0A;
-        // ReSharper disable once InconsistentNaming
-        private static readonly byte[] DOSLineEnding = { Cr, Lf };
 
-        private static readonly string[] KnownBinaryExtensions =
+        private static readonly HashSet<string> KnownBinaryExtensions = new HashSet<string>
         {
             ".exe", ".jar", ".dll", ".class", ".zip", ".rar", ".suo", ".doc", ".docx", ".xls", ".xlsx", ".png", ".gif",
-            ".jpg", ".jpeg", ".tif", ".tiff", ".swf", ".fla", "bin"
+            ".jpg", ".jpeg", ".tif", ".tiff", ".swf", ".fla", ".bin"
         };
 
         static void Main(string[] args)
@@ -25,36 +24,37 @@ namespace LineEndings
                 return;
             }
 
-            bool d2U = args[0] == "D2U";
-            bool u2D = args[0] == "U2D";
+            bool convertToUnix = args[0] == "D2U";
+            bool convertToDos = args[0] == "U2D";
 
-            if (!d2U && !u2D)
+            if (!convertToUnix && !convertToDos)
             {
-                Console.WriteLine("Specified conversion is invalid, provide either \"D2U\" or \"U2D\" as the first parameter");
+                Console.WriteLine("Invalid conversion type. Use \"D2U\" or \"U2D\".");
                 return;
             }
 
-            if (Directory.Exists(args[1]) == false)
+            if (!Directory.Exists(args[1]))
             {
-                Console.WriteLine("Specified path does not exists, provide valid path name as the second parameter");
+                Console.WriteLine("Invalid path. Ensure the directory exists.");
                 return;
             }
 
-            Console.WriteLine("Scanning: '" + args[1] + "' and subdirectories");
-            string[] allFiles = Directory.GetFiles(args[1], "*.*", SearchOption.AllDirectories);
+            Console.WriteLine($"Scanning: '{args[1]}' and subdirectories");
+            var allFiles = Directory.EnumerateFiles(args[1], "*.*", SearchOption.AllDirectories);
 
             foreach (string fileName in allFiles)
             {
+                string extension = Path.GetExtension(fileName).ToLowerInvariant();
+                if (KnownBinaryExtensions.Contains(extension))
+                {
+                    Console.WriteLine($"Skipping binary file: '{fileName}'");
+                    continue;
+                }
+
+                Console.WriteLine($"Converting: '{fileName}'");
                 try
                 {
-                    if (KnownBinaryExtensions.Any(Path.GetExtension(fileName).ToLowerInvariant().Contains))
-                    {
-                        Console.WriteLine("Skipping: '" + fileName + "'");
-                        continue;
-                    }
-
-                    Console.WriteLine("Converting: '" + fileName + "'");
-                    if (d2U)
+                    if (convertToUnix)
                     {
                         Dos2Unix(fileName);
                     }
@@ -65,13 +65,11 @@ namespace LineEndings
                 }
                 catch (Exception exception)
                 {
-                    Console.WriteLine("Conversion failed: '" + fileName + "' with error: '" + exception.Message + "'");
+                    Console.WriteLine($"Failed to convert '{fileName}': {exception.Message}");
                 }
             }
 
-            Console.WriteLine("Converting finished");
-            Console.ReadLine();
-
+            Console.WriteLine("Conversion complete.");
         }
 
         /// <summary>
@@ -119,4 +117,5 @@ namespace LineEndings
             File.WriteAllText(fileName, convertedContent);
         }
     }
+}
 }
