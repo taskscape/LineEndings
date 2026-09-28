@@ -10,7 +10,7 @@ This utility is designed to convert line endings in text files between Windows-s
 
 ## Requirements
 
-- .NET 8.0 SDK or higher
+- .NET 10.0 SDK or higher
 
 ## Installation
 
